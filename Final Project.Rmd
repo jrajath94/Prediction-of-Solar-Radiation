@@ -1,0 +1,152 @@
+---
+title: "Final Project"
+author: "Rajath John Bosco"
+date: "15/04/2020"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+
+solar = read.csv(file ='solar.csv')
+head(solar)
+
+df_solar = as.data.frame(solar)
+samp <- sample(nrow(df_solar),1000)
+
+#data in the sample
+df_solar <- df_solar[samp,]
+
+df_solar$latitude = as.double(df_solar$latitude)
+
+df_solar<- subset(df_solar, select = -c(longitude))
+
+df_solar_scaled = as.data.frame(scale(df_solar))
+scaled.df_solar <- scale(df_solar)
+
+
+train_size = nrow(scaled.df_solar) * 0.8 # Size of the training data 80% (20% for Testing)
+sampler = sample(nrow(scaled.df_solar), size = train_size,replace=F) #Random Sample the dataset
+df_solar.train = scaled.df_solar[sampler, ] # Dividing the training dataset
+df_solar.test = scaled.df_solar[-sampler, ] # Dividing the testing dataset
+
+
+df_solar.train = as.data.frame(df_solar.train)
+df_solar.test = as.data.frame(df_solar.test)
+
+```
+
+
+```{r}
+
+
+colSums(is.na(df_solar))
+
+```
+
+
+
+```{r}
+pairs(df_solar)
+
+```
+
+
+
+```{r}
+
+cor(df_solar)
+
+```
+
+
+```{r}
+library(ggplot2)
+library(reshape2)
+q = qplot(x=Var1, y=Var2, data=melt(cor(df_solar)), fill=value, geom="tile")
+q + theme(axis.text.x = element_text(angle = 90, hjust = 1)) 
+
+```
+
+
+```{r}
+
+fit <- lm(surface_net_solar_radiation ~., data=df_solar)
+summary(fit)
+
+
+
+```
+
+
+```{r warning=False}
+
+fit = lm(surface_net_solar_radiation~., data=df_solar.train,na.action=na.omit)
+summary(fit)
+
+pred.lm = predict(fit, df_solar.test)
+cat("\n Test Error of the Linear Model - ", mean((pred.lm - df_solar.test$surface_net_solar_radiation)^2))
+
+#all(is.na(y))
+
+```
+
+
+
+```{r}
+
+df_solar.train.matrix<-model.matrix(surface_net_solar_radiation~.,df_solar.train)
+df_solar.test.matrix<-model.matrix(surface_net_solar_radiation~.,df_solar.test)
+
+
+
+grid<-10^seq(10,-2,length=100) # Cover all range of lambda , from lambda^10 to lambda^-2
+
+library(glmnet)
+ridge<-glmnet(df_solar.train.matrix,df_solar.train$surface_net_solar_radiation,thresh = 1e-12 ,lambda=grid,alpha=0) #alpha = 0 then a ridge regression model is fit , Convergence threshold is set to 1e-12
+
+cv.ridge<-cv.glmnet(df_solar.train.matrix,df_solar.train$surface_net_solar_radiation ,thresh = 1e-12 ,lambda=grid,alpha=0) #Cross validation
+
+lowest_lambda_value.ridge<-cv.ridge$lambda.min # fetching the value of lambda for which cross validation error in the minimum
+cat("\n Best Lambda Value post Cross Validationof the Ridge model - ",lowest_lambda_value.ridge)
+
+
+pred.ridge <- predict(ridge, s = lowest_lambda_value.ridge, newx = df_solar.test.matrix) # prediction 
+cat("\n Test Error of the Ridge Regression  Model - ", mean((pred.ridge - df_solar.test$surface_net_solar_radiation)^2)) # Error
+
+
+
+
+
+```
+
+
+
+```{r}
+library(randomForest)
+
+
+solar.rf <- randomForest(surface_net_solar_radiation ~ ., data=df_solar.train, mtry=3,importance=TRUE, na.action=na.omit)
+
+randomF.probs <- predict(solar.rf, newdata = df_solar.test)
+
+#table(randomF.probs, df_solar.test$surface_net_solar_radiation)
+
+mean((randomF.probs-df_solar.test$surface_net_solar_radiation)^2)
+
+
+
+
+
+```
+
+
+
+```{r}
+
+```
+
+
+
+```{r}
+
+```
