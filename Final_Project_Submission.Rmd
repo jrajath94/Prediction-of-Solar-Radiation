@@ -15,6 +15,7 @@ East - -84
 
 ```{r read_csv, include=FALSE}
 
+
 solar = read.csv(file ='solar_radiation_Features_Illinois_Jan-Dec2019v4.csv')
 head(solar)
 
@@ -391,7 +392,7 @@ print(attributes)
 
 ```{r Data_Matrix + Lasso}
 
-
+library(glmnet)
 df_solar.train.matrix<-model.matrix(surface_net_solar_radiation ~
                                       a10m_wind_gust_since_previous_post_processing+           
 a2m_dewpoint_temperature+                                
@@ -498,7 +499,7 @@ summary(fit.lasso)
 
 
 ```{r Model Matrix}
-library(glmnet)
+
 
 xtrain=model.matrix(surface_net_solar_radiation ~
 a2m_temperature                                          
